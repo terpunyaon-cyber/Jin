@@ -1242,7 +1242,7 @@ CombatTab:Dropdown({
     end
 })
 
-local ESPEnabled = false
+local ESPEnabled = true
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
@@ -1308,7 +1308,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-local ESPDistanceEnabled = false
+local ESPDistanceEnabled = true
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
@@ -1376,7 +1376,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-local ESPHealthEnabled = false
+local ESPHealthEnabled = true
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
@@ -1531,7 +1531,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-local ESPHighlightEnabled = false
+local ESPHighlightEnabled = true
 local Players = game:GetService("Players")
 
 EspTab:Toggle({
@@ -1602,7 +1602,7 @@ end)
 
 EspTab:Toggle({
 	Title = 'Inventory Viewer',
-	Default = false,
+	Default = true,
 	Callback = function(Value)
 		_G.InventoryViewerEnabled = Value
 		local Players = game:GetService('Players')
