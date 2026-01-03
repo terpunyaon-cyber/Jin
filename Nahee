@@ -188,79 +188,6 @@ local ServerTab = Window:Tab({
     Icon = "server"
 })
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Camera = workspace.CurrentCamera
-local LocalPlayer = Players.LocalPlayer
-
-local SilentAimEnabled = true
-local ShowFOV = true
-local FOV = 250
-local BASE_PREDICTION = 12
-local ANTI_PREDICTION = 0.6
-
-local CombatTab = Window:Tab({
-    Title = "Combat",
-    Icon = "swords"
-})
-
-CombatTab:Section({
-    Title = "Silent Aim"
-})
-
-CombatTab:Toggle({
-    Title = "Aim Bot",
-    Flag = "SilentAim",
-    Value = SilentAimEnabled,
-    Callback = function(Value)
-        SilentAimEnabled = Value
-    end
-})
-
-CombatTab:Toggle({
-    Title = "Show FOV",
-    Flag = "ShowFOV",
-    Value = ShowFOV,
-    Callback = function(Value)
-        ShowFOV = Value
-    end
-})
-
-CombatTab:Slider({
-    Title = "FOV Size",
-    Flag = "FOVSize",
-    Min = 20,
-    Max = 1000,
-    Value = FOV,
-    Step = 1,
-    Callback = function(Value)
-        FOV = Value
-    end
-})
-
-CombatTab:Section({
-    Title = "Friends"
-})
-
-CombatTab:Dropdown({
-    Title = "Save Friends",
-    Flag = "SaveFriends",
-    Values = {},
-    Multi = true,
-    Value = {},
-    Callback = function(list)
-        for _,p in pairs(Players:GetPlayers()) do
-            p:SetAttribute("SilentAimIgnore", false)
-        end
-        for _,name in pairs(list) do
-            local p = Players:FindFirstChild(name)
-            if p then
-                p:SetAttribute("SilentAimIgnore", true)
-            end
-        end
-    end
-})
 
 
 MainTab:Section(
@@ -840,77 +767,89 @@ MainTab:Slider({
 })
 
 
---// SERVICES
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+
 local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
 
 
+local SilentAimEnabled = true
+local TracerEnabled = true
 
---// DRAWING
-local FOVPoly = Drawing.new("Polygon")
-FOVPoly.Color = Color3.fromRGB(255,255,255)
-FOVPoly.Thickness = 2
-FOVPoly.Filled = false
-FOVPoly.Visible = true
+local ShowFOV = true
+local FOV = 150
+local HitPart = "Head" -- Head / Body
+local SavedFriends = {}
 
-local Tracer = Drawing.new("Line")
-Tracer.Color = Color3.fromRGB(255,0,0)
-Tracer.Thickness = 2
-Tracer.Visible = true
+local NORMAL_PREDICTION = 0.12
+local HIGH_VELOCITY_PREDICTION = 0.6
+local VELOCITY_THRESHOLD = 250
 
---// UTILS
-local function IsAlive(plr)
-    return plr.Character
-    and plr.Character:FindFirstChild("Head")
-    and plr.Character:FindFirstChild("HumanoidRootPart")
-end
 
-local function IsAntiAim(char)
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return false end
-    if hrp.AssemblyLinearVelocity.Magnitude > 250 then return true end
-    if hrp.AssemblyAngularVelocity.Magnitude > 250 then return true end
+local GunNames = {
+    "P226","MP5","M24","Draco","Glock","Sawnoff","Uzi","G3","C9",
+    "Hunting Rifle","Anaconda","AK47","Remington","Double Barrel"
+}
+local GunLookup = {}
+for _, v in pairs(GunNames) do GunLookup[v] = true end
+
+
+local fovCircle = Drawing.new("Circle")
+fovCircle.Color = Color3.new(1,1,1)
+fovCircle.Thickness = 2
+fovCircle.NumSides = 100
+fovCircle.Filled = false
+fovCircle.Visible = ShowFOV
+
+local tracerLine = Drawing.new("Line")
+tracerLine.Color = Color3.new(1,0,0)
+tracerLine.Thickness = 2
+tracerLine.Visible = false
+
+
+local function isHoldingGun(args)
+    local ok, weapon = pcall(function() return args[3] end)
+    if ok and typeof(weapon) == "Instance" and GunLookup[weapon.Name] then
+        return true
+    end
+    local char = LocalPlayer.Character
+    if not char then return false end
+    for _, v in pairs(char:GetChildren()) do
+        if (v:IsA("Tool") or v:IsA("Model")) and GunLookup[v.Name] then
+            return true
+        end
+    end
     return false
 end
 
-local function IsBehindWall(pos, targetChar)
-    local params = RaycastParams.new()
-    params.FilterType = Enum.RaycastFilterType.Blacklist
-    params.FilterDescendantsInstances = {LocalPlayer.Character, targetChar}
-
-    local origin = Camera.CFrame.Position
-    local dir = pos - origin
-    return workspace:Raycast(origin, dir, params) ~= nil
-end
-
-local function GetAimPosition(head, char)
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return head.Position end
-
-    if IsAntiAim(char) then
-        return head.Position + (hrp.CFrame.LookVector * ANTI_PREDICTION)
+local function getTargetPart(char)
+    if HitPart == "Body" then
+        return char:FindFirstChild("HumanoidRootPart")
     end
-
-    return head.Position + (hrp.AssemblyLinearVelocity * BASE_PREDICTION)
+    return char:FindFirstChild("Head")
 end
 
-local function GetClosestTarget()
+local function getClosestTarget()
+    local closest, shortest = nil, math.huge
     local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
-    local closest, dist = nil, math.huge
 
-    for _,plr in pairs(Players:GetPlayers()) do
+    for _, plr in pairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer
-        and not plr:GetAttribute("SilentAimIgnore")
-        and IsAlive(plr) then
-            local pos, on = Camera:WorldToViewportPoint(plr.Character.Head.Position)
-            if on then
-                local mag = (Vector2.new(pos.X,pos.Y) - center).Magnitude
-                if mag < FOV and mag < dist then
-                    dist = mag
-                    closest = plr
+        and not SavedFriends[plr.Name]
+        and plr.Character then
+            local part = getTargetPart(plr.Character)
+            if part then
+                local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
+                if onScreen then
+                    local dist = (Vector2.new(pos.X, pos.Y) - center).Magnitude
+                    if dist < FOV and dist < shortest then
+                        shortest = dist
+                        closest = plr
+                    end
                 end
             end
         end
@@ -918,65 +857,135 @@ local function GetClosestTarget()
     return closest
 end
 
---// HOOK REMOTE
-local send = ReplicatedStorage.Remotes.Send
+local function isBehindWall(fromPos, toPos, targetChar)
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = {LocalPlayer.Character, targetChar}
+    params.IgnoreWater = true
+    return Workspace:Raycast(fromPos, toPos - fromPos, params) ~= nil
+end
+
+local function getPrediction(hrp)
+    if hrp.AssemblyLinearVelocity.Magnitude > VELOCITY_THRESHOLD then
+        return HIGH_VELOCITY_PREDICTION
+    end
+    return NORMAL_PREDICTION
+end
+
+
+local send = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Send")
 local oldFire
 oldFire = hookfunction(send.FireServer, function(self, ...)
     local args = {...}
 
-    if SilentAimEnabled then
-        local target = GetClosestTarget()
-        if target and IsAlive(target) then
-            local head = target.Character.Head
-            local aimPos = GetAimPosition(head, target.Character)
+    if SilentAimEnabled and isHoldingGun(args) then
+        local target = getClosestTarget()
+        if target and target.Character then
+            local part = getTargetPart(target.Character)
+            local hrp = target.Character:FindFirstChild("HumanoidRootPart")
+            local myHead = LocalPlayer.Character
+                and LocalPlayer.Character:FindFirstChild("Head")
 
-            if IsBehindWall(aimPos, target.Character) then
-                args[4] = CFrame.new(math.huge, math.huge, math.huge)
-            else
-                args[4] = CFrame.new(LocalPlayer.Character.Head.Position, aimPos)
-            end
+            if part and hrp and myHead then
+                local predictedPos =
+                    part.Position + hrp.AssemblyLinearVelocity * getPrediction(hrp)
 
-            args[5] = {
-                [1] = {
+                if isBehindWall(myHead.Position, predictedPos, target.Character) then
+                    args[4] = CFrame.new(math.huge, math.huge, math.huge)
+                else
+                    args[4] = CFrame.new(myHead.Position, predictedPos)
+                end
+
+                args[5] = {
                     [1] = {
-                        Instance = head,
-                        Position = aimPos
+                        [1] = {
+                            Instance = part,
+                            Position = predictedPos
+                        }
                     }
                 }
-            }
+            end
         end
     end
 
     return oldFire(self, unpack(args))
 end)
 
---// RENDER
+
 RunService.RenderStepped:Connect(function()
     local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
 
-    if ShowFOV and SilentAimEnabled then
-        local pts = {}
-        for i = 1,10 do
-            local a = math.rad((i/10)*360)
-            pts[i] = center + Vector2.new(math.cos(a), math.sin(a)) * FOV
-        end
-        FOVPoly.Points = pts
-        FOVPoly.Visible = true
-    else
-        FOVPoly.Visible = false
-    end
+    -- FOV
+    fovCircle.Visible = ShowFOV and SilentAimEnabled
+    fovCircle.Position = center
+    fovCircle.Radius = FOV
 
-    local target = GetClosestTarget()
-    if target and IsAlive(target) then
-        local pos, on = Camera:WorldToViewportPoint(target.Character.Head.Position)
-        if on then
-            Tracer.From = center
-            Tracer.To = Vector2.new(pos.X, pos.Y)
-            Tracer.Visible = true
-            return
+    -- Tracer (จากกลาง FOV)
+    tracerLine.Visible = false
+    if TracerEnabled then
+        local target = getClosestTarget()
+        if target and target.Character then
+            local part = getTargetPart(target.Character)
+            if part then
+                local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
+                if onScreen then
+                    tracerLine.From = center
+                    tracerLine.To = Vector2.new(pos.X, pos.Y)
+                    tracerLine.Visible = true
+                end
+            end
         end
     end
-    Tracer.Visible = false
 end)
 
 
+CombatTab:Toggle({
+    Title = "Show FOV",
+    Default = ShowFOV,
+    Callback = function(state)
+        ShowFOV = state
+        fovCircle.Visible = state and SilentAimEnabled
+    end
+})
+
+CombatTab:Slider({
+    Title = "FOV Size",
+    Step = 1,
+    Value = {
+        Min = 20,
+        Max = 1000
+    },
+    Default = FOV,
+    Callback = function(v)
+        FOV = v
+    end
+})
+
+CombatTab:Dropdown({
+    Title = "Save Friend",
+    Multi = true,
+    Values = (function()
+        local t = {}
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer then
+                table.insert(t, p.Name)
+            end
+        end
+        return t
+    end)(),
+    Callback = function(list)
+        SavedFriends = {}
+        for _, name in pairs(list) do
+            SavedFriends[name] = true
+        end
+    end
+})
+
+CombatTab:Dropdown({
+    Title = "Hit Part",
+    Values = {"Head", "Body"},
+    Default = HitPart,
+    Callback = function(v)
+        HitPart = v
+    end
+})
