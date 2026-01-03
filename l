@@ -603,7 +603,6 @@ end)
 MainTab:Toggle({
     Title = "Anti Aim",
     Flag = "antilock",
-    Type = "Checkbox",
     Value = false,
     Callback = function(Value)
         _G.AntiLock = Value
@@ -767,9 +766,7 @@ end
 
 MainTab:Toggle({
     Title = "Anti Ragdoll",
-    Desc = "No ragdoll",
     Flag = "AntiRagdoll",
-    Type = "Checkbox",
     Value = false,
     Callback = function(Value)
         _G.AntiRagdoll = Value
@@ -801,8 +798,6 @@ MainTab:Toggle(
     {
         Title = "Fly Jump",
         Flag = "Fly",
-        Icon = "check",
-        Type = "Checkbox",
         Value = false,
         Callback = function(Value)
             EnabledFlyJump = Value
@@ -896,7 +891,6 @@ MainTab:Toggle(
     {
         Title = "Infinite Stamina",
         Flag = "Inf",
-        Type = "Checkbox",
         Value = false,
         Callback = function(Value)
             EnabledInfiniteStamina = Value
