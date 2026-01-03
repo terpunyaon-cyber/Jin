@@ -1032,7 +1032,7 @@ local Camera = Workspace.CurrentCamera
 local SilentAimEnabled = true
 local TracerEnabled = true
 
-local ShowFOV = true
+local ShowFOV = false
 local FOV = 150
 local HitPart = "Head" -- Head / Body
 local SavedFriends = {}
@@ -1241,3 +1241,512 @@ CombatTab:Dropdown({
         HitPart = v
     end
 })
+
+local ESPEnabled = true
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+
+EspTab:Toggle({
+    Title = "Player Names",
+    Default = ESPEnabled,
+    Callback = function(state)
+        ESPEnabled = state
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= Players.LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+                local billboard = player.Character.Head:FindFirstChild("ESP_Name")
+                if billboard then
+                    billboard.Enabled = state
+                end
+            end
+        end
+    end
+})
+
+local function CreateESP(player)
+    if player == Players.LocalPlayer then return end
+    if not player.Character or not player.Character:FindFirstChild("Head") then return end
+
+    local head = player.Character.Head
+    if head:FindFirstChild("ESP_Name") then return end
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESP_Name"
+    billboard.Parent = head
+    billboard.AlwaysOnTop = true
+    billboard.Size = UDim2.new(0, 100, 0, 12)
+    billboard.Enabled = ESPEnabled
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Parent = billboard
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = Color3.new(1, 1, 1)
+    textLabel.TextScaled = true
+    textLabel.Font = Enum.Font.SourceSansBold
+    textLabel.Text = player.Name
+end
+
+for _, player in pairs(Players:GetPlayers()) do
+    CreateESP(player)
+end
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        CreateESP(player)
+    end)
+end)
+
+RunService.RenderStepped:Connect(function()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local billboard = player.Character.Head:FindFirstChild("ESP_Name")
+            if billboard then
+                billboard.Size = UDim2.new(0, 100, 0, 12)
+            end
+        end
+    end
+end)
+
+local ESPDistanceEnabled = true
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+EspTab:Toggle({
+    Title = "Player Distance",
+    Default = ESPDistanceEnabled,
+    Callback = function(state)
+        ESPDistanceEnabled = state
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local billboard = player.Character.HumanoidRootPart:FindFirstChild("ESP_Distance")
+                if billboard then
+                    billboard.Enabled = state
+                end
+            end
+        end
+    end
+})
+
+local function CreateDistanceESP(player)
+    if player == Players.LocalPlayer then return end
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+    local root = player.Character.HumanoidRootPart
+    if root:FindFirstChild("ESP_Distance") then return end
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESP_Distance"
+    billboard.Parent = root
+    billboard.AlwaysOnTop = true
+    billboard.Size = UDim2.new(0, 100, 0, 12)
+    billboard.StudsOffset = Vector3.new(0, -3, 0) -- แสดงใต้เท้า
+    billboard.Enabled = ESPDistanceEnabled
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Parent = billboard
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = Color3.new(1, 1, 1)
+    textLabel.TextScaled = true
+    textLabel.Font = Enum.Font.SourceSansBold
+    textLabel.Text = ""
+end
+
+for _, player in pairs(Players:GetPlayers()) do
+    CreateDistanceESP(player)
+end
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        CreateDistanceESP(player)
+    end)
+end)
+
+RunService.RenderStepped:Connect(function()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local root = player.Character.HumanoidRootPart
+            local billboard = root:FindFirstChild("ESP_Distance")
+            if billboard then
+                billboard.Size = UDim2.new(0, 100, 0, 12)
+                local distance = math.floor((root.Position - Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude)
+                billboard.TextLabel.Text = distance.."m"
+            end
+        end
+    end
+end)
+
+local ESPHealthEnabled = true
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+EspTab:Toggle({
+    Title = "Player Health",
+    Default = ESPHealthEnabled,
+    Callback = function(state)
+        ESPHealthEnabled = state
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local billboard = player.Character.HumanoidRootPart:FindFirstChild("ESP_Health")
+                if billboard then
+                    billboard.Enabled = state
+                end
+            end
+        end
+    end
+})
+
+local function CreateHealthESP(player)
+    if player == Players.LocalPlayer then return end
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") or not player.Character:FindFirstChild("Humanoid") then return end
+    local root = player.Character.HumanoidRootPart
+    if root:FindFirstChild("ESP_Health") then return end
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESP_Health"
+    billboard.Parent = root
+    billboard.AlwaysOnTop = true
+    billboard.Size = UDim2.new(0, 50, 0, 10) -- ขนาด 10
+    billboard.StudsOffset = Vector3.new(1.5, 0, 0) -- ข้างตัวขวา
+    billboard.Enabled = ESPHealthEnabled
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Parent = billboard
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = Color3.new(1, 0, 0) -- สีแดง
+    textLabel.TextScaled = true
+    textLabel.Font = Enum.Font.SourceSansBold
+    textLabel.Text = ""
+end
+
+for _, player in pairs(Players:GetPlayers()) do
+    CreateHealthESP(player)
+end
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        CreateHealthESP(player)
+    end)
+end)
+
+RunService.RenderStepped:Connect(function()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") then
+            local root = player.Character.HumanoidRootPart
+            local humanoid = player.Character.Humanoid
+            local billboard = root:FindFirstChild("ESP_Health")
+            if billboard then
+                billboard.Size = UDim2.new(0, 50, 0, 10)
+                local healthPercent = math.floor((humanoid.Health / humanoid.MaxHealth) * 100)
+                billboard.TextLabel.Text = healthPercent.."%"
+            end
+        end
+    end
+end)
+
+local ESPTraceEnabled = true
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+
+EspTab:Toggle({
+    Title = "ESP Trace",
+    Default = ESPTraceEnabled,
+    Callback = function(state)
+        ESPTraceEnabled = state
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local line = player.Character.HumanoidRootPart:FindFirstChild("ESP_Trace")
+                if line then
+                    line.Enabled = state
+                end
+            end
+        end
+    end
+})
+
+local function CreateTraceESP(player)
+    if player == Players.LocalPlayer then return end
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+    local root = player.Character.HumanoidRootPart
+    if root:FindFirstChild("ESP_Trace") then return end
+
+    local line = Drawing.new("Line")
+    line.Color = Color3.fromRGB(0, 162, 255) -- สีฟ้า
+    line.Thickness = 2
+    line.Transparency = 1
+    line.Visible = ESPTraceEnabled
+    line.Name = "ESP_Trace"
+
+    root:GetPropertyChangedSignal("Position"):Connect(function()
+        -- อัปเดตตำแหน่งเส้นทุกครั้งที่ตำแหน่งเปลี่ยน
+        if ESPTraceEnabled then
+            local screenPos, onScreen = Camera:WorldToViewportPoint(root.Position)
+            if onScreen then
+                local screenCenter = Vector2.new(Camera.ViewportSize.X/2, 0) -- จากบนหน้าจอ (กลางบน)
+                line.From = screenCenter
+                line.To = Vector2.new(screenPos.X, screenPos.Y)
+                line.Visible = true
+            else
+                line.Visible = false
+            end
+        else
+            line.Visible = false
+        end
+    end)
+
+    player.CharacterRemoving:Connect(function()
+        line:Remove()
+    end)
+end
+
+for _, player in pairs(Players:GetPlayers()) do
+    CreateTraceESP(player)
+end
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        CreateTraceESP(player)
+    end)
+end)
+
+RunService.RenderStepped:Connect(function()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local root = player.Character.HumanoidRootPart
+            local line = root:FindFirstChild("ESP_Trace")
+            if line and ESPTraceEnabled then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(root.Position)
+                if onScreen then
+                    local screenCenter = Vector2.new(Camera.ViewportSize.X/2, 0)
+                    line.From = screenCenter
+                    line.To = Vector2.new(screenPos.X, screenPos.Y)
+                    line.Visible = true
+                else
+                    line.Visible = false
+                end
+            end
+        end
+    end
+end)
+
+local ESPHighlightEnabled = true
+local Players = game:GetService("Players")
+
+EspTab:Toggle({
+    Title = "ESP Highlight",
+    Default = ESPHighlightEnabled,
+    Callback = function(state)
+        ESPHighlightEnabled = state
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= Players.LocalPlayer and player.Character then
+                local highlight = player.Character:FindFirstChild("ESP_Highlight")
+                if highlight then
+                    highlight.Enabled = state
+                end
+            end
+        end
+    end
+})
+
+local function CreateHighlightESP(player)
+    if player == Players.LocalPlayer then return end
+    if not player.Character then return end
+
+    if player.Character:FindFirstChild("ESP_Highlight") then return end
+
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "ESP_Highlight"
+    highlight.Parent = player.Character
+    highlight.Enabled = ESPHighlightEnabled
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- มองทะลุกำแพง
+end
+
+local function UpdateHighlight(player)
+    if not player.Character or not player.Character:FindFirstChild("Humanoid") then return end
+    local humanoid = player.Character.Humanoid
+    local highlight = player.Character:FindFirstChild("ESP_Highlight")
+    if highlight then
+        if humanoid.Health <= 0 then
+            highlight.FillColor = Color3.new(0,0,0) -- ตาย สีดำ
+        elseif humanoid.Health <= 20 then
+            highlight.FillColor = Color3.new(1,0,0) -- แดง
+        elseif humanoid.Health <= 50 then
+            highlight.FillColor = Color3.new(1,1,0) -- เหลือง
+        else
+            highlight.FillColor = Color3.new(0,1,0) -- เขียว
+        end
+        highlight.OutlineColor = Color3.new(1,1,1)
+    end
+end
+
+for _, player in pairs(Players:GetPlayers()) do
+    CreateHighlightESP(player)
+end
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        CreateHighlightESP(player)
+    end)
+end)
+
+-- 
+game:GetService("RunService").RenderStepped:Connect(function()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer and player.Character and player.Character:FindFirstChild("Humanoid") then
+            UpdateHighlight(player)
+        end
+    end
+end)
+
+EspTab:Toggle({
+	Title = 'Inventory Viewer',
+	Default = true,
+	Callback = function(Value)
+		_G.InventoryViewerEnabled = Value
+		local Players = game:GetService('Players')
+		local ReplicatedStorage = game:GetService('ReplicatedStorage')
+		local Client = Players.LocalPlayer
+		local function GetColorFromRarity(rarityName)
+			local colors = {
+				['Common'] = Color3.fromRGB(255, 255, 255),
+				['UnCommon'] = Color3.fromRGB(99, 255, 52),
+				['Rare'] = Color3.fromRGB(51, 170, 255),
+				['Legendary'] = Color3.fromRGB(255, 150, 0),
+				['Epic'] = Color3.fromRGB(237, 44, 255),
+				['Omega'] = Color3.fromRGB(255, 20, 51),
+			}
+			return colors[rarityName] or Color3.fromRGB(255, 255, 255)
+		end
+		if Value then
+			if not _G.ViewerRunning then
+				_G.ViewerRunning = true
+				task.spawn(function()
+					while task.wait(0.2) do
+						if not _G.InventoryViewerEnabled then
+							continue
+						end
+						pcall(function()
+							for _, v in pairs(Players:GetPlayers()) do
+								if v ~= Client and v.Character and v.Character:FindFirstChild('HumanoidRootPart') then
+									local root = v.Character.HumanoidRootPart
+									local gui = root:FindFirstChild('ItemBillboard')
+									if not gui then
+										gui = Instance.new('BillboardGui')
+										gui.Name = 'ItemBillboard'
+										gui.AlwaysOnTop = true
+										gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+										gui.Size = UDim2.new(0, 200, 0, 50)
+										gui.StudsOffset = Vector3.new(0, -5, 0)
+										gui.ExtentsOffset = Vector3.new(0, 1, 0)
+										gui.LightInfluence = 1
+										gui.Parent = root
+										local bg = Instance.new('Frame')
+										bg.Name = 'BG'
+										bg.BackgroundTransparency = 1
+										bg.Size = UDim2.new(1, 0, 1, 0)
+										bg.AnchorPoint = Vector2.new(0.5, 0.5)
+										bg.Position = UDim2.new(0.5, 0, 0.5, 0)
+										bg.Parent = gui
+										local layout = Instance.new('UIListLayout')
+										layout.FillDirection = Enum.FillDirection.Horizontal
+										layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+										layout.VerticalAlignment = Enum.VerticalAlignment.Center
+										layout.Padding = UDim.new(0, 5)
+										layout.Parent = bg
+									end
+									local bg = gui:FindFirstChild('BG')
+									if not bg then
+										continue
+									end
+									local Items = {}
+
+                                    
+									for _, child in pairs(bg:GetChildren()) do
+										if child:IsA('Frame') then
+											child:Destroy()
+										end
+									end
+
+                                    -- loop item ใน backpack + character
+									for _, container in pairs({
+										v:FindFirstChild('Backpack'),
+										v.Character
+									}) do
+										if container then
+											for _, tool in pairs(container:GetChildren()) do
+												if tool:IsA('Tool') and not tool:GetAttribute('JobTool') and not tool:GetAttribute('Locked') then
+													local itemFolder = tool:GetAttribute('AmmoType') and ReplicatedStorage.Items.gun or ReplicatedStorage.Items.melee
+													for _, z in pairs(itemFolder:GetChildren()) do
+														if tool:GetAttribute('RarityName') == z:GetAttribute('RarityName') and tool:GetAttribute('RarityPrice') == z:GetAttribute('RarityPrice') then
+															local imageId = z:GetAttribute('ImageId')
+															if imageId then
+																Items[z.Name] = true
+																if not bg:FindFirstChild(z.Name .. '_bg') then
+																	local iconBg = Instance.new('Frame')
+																	iconBg.Name = z.Name .. '_bg'
+																	iconBg.Size = UDim2.new(0, 34, 0, 34)
+																	iconBg.BackgroundColor3 = GetColorFromRarity(z:GetAttribute('RarityName'))
+																	iconBg.BackgroundTransparency = 1
+																	iconBg.BorderSizePixel = 0
+																	iconBg.Parent = bg
+																	local bgImage = Instance.new('ImageLabel')
+																	bgImage.Name = 'Background'
+																	bgImage.Size = UDim2.new(1, 0, 1, 0)
+																	bgImage.BackgroundTransparency = 1
+																	bgImage.Image = 'rbxassetid://137066731814190'
+																	bgImage.ImageColor3 = GetColorFromRarity(z:GetAttribute('RarityName'))
+																	bgImage.ZIndex = 0
+																	bgImage.Parent = iconBg
+																	local corner = Instance.new('UICorner')
+																	corner.CornerRadius = UDim.new(0.15, 0)
+																	corner.Parent = iconBg
+																	local icon = Instance.new('ImageLabel')
+																	icon.Name = z.Name
+																	icon.Image = imageId
+																	icon.BackgroundTransparency = 1
+																	icon.BorderSizePixel = 0
+																	icon.Size = UDim2.new(0.85, 0, 0.85, 0)
+																	icon.Position = UDim2.new(0.075, 0, 0.075, 0)
+																	icon.Parent = iconBg
+																	local corner2 = Instance.new('UICorner')
+																	corner2.CornerRadius = UDim.new(0, 9)
+																	corner2.Parent = icon
+																end
+															end
+														end
+													end
+												end
+											end
+										end
+									end
+									gui.Enabled = _G.InventoryViewerEnabled
+									for _, child in pairs(bg:GetChildren()) do
+										if child:IsA('Frame') then
+											local itemName = child.Name:gsub('_bg$', '')
+											if not Items[itemName] then
+												child:Destroy()
+											end
+										end
+									end
+								end
+							end
+						end)
+					end
+				end)
+			end
+		else
+            
+			for _, v in pairs(Players:GetPlayers()) do
+				if v.Character and v.Character:FindFirstChild('HumanoidRootPart') then
+					local gui = v.Character.HumanoidRootPart:FindFirstChild('ItemBillboard')
+					if gui then
+						gui:Destroy()
+					end
+				end
+			end
+		end
+	end  
+})
+
