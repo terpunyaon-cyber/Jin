@@ -1004,27 +1004,22 @@ MainTab:Slider({
     end
 })
 
-MainTab:Section(
-    {
-        Title = "aim bot:"
-    }
-)
 
-
+--// SERVICES
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
-
+--// SETTINGS
 local SilentAimEnabled = true
 local ShowFOV = true
 local FOV = 250
 local BASE_PREDICTION = 12
 local ANTI_PREDICTION = 0.6
 
-
+--// DRAWING
 local FOVPoly = Drawing.new("Polygon")
 FOVPoly.Color = Color3.fromRGB(255,255,255)
 FOVPoly.Thickness = 2
@@ -1036,14 +1031,13 @@ Tracer.Color = Color3.fromRGB(255,0,0)
 Tracer.Thickness = 2
 Tracer.Visible = true
 
---// UT
+--// UTILS
 local function IsAlive(plr)
     return plr.Character
     and plr.Character:FindFirstChild("Head")
     and plr.Character:FindFirstChild("HumanoidRootPart")
 end
 
--- velo
 local function IsAntiAim(char)
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return false end
@@ -1052,7 +1046,6 @@ local function IsAntiAim(char)
     return false
 end
 
--- เช็ค
 local function IsBehindWall(pos, targetChar)
     local params = RaycastParams.new()
     params.FilterType = Enum.RaycastFilterType.Blacklist
@@ -1063,7 +1056,6 @@ local function IsBehindWall(pos, targetChar)
     return workspace:Raycast(origin, dir, params) ~= nil
 end
 
--- คำนวณ
 local function GetAimPosition(head, char)
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return head.Position end
@@ -1075,7 +1067,6 @@ local function GetAimPosition(head, char)
     return head.Position + (hrp.AssemblyLinearVelocity * BASE_PREDICTION)
 end
 
--- หาเป้า
 local function GetClosestTarget()
     local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
     local closest, dist = nil, math.huge
@@ -1097,7 +1088,7 @@ local function GetClosestTarget()
     return closest
 end
 
---// H00k remote
+--// HOOK REMOTE
 local send = ReplicatedStorage.Remotes.Send
 local oldFire
 oldFire = hookfunction(send.FireServer, function(self, ...)
@@ -1133,7 +1124,6 @@ end)
 RunService.RenderStepped:Connect(function()
     local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
 
-    -- FOV 
     if ShowFOV and SilentAimEnabled then
         local pts = {}
         for i = 1,10 do
@@ -1146,7 +1136,6 @@ RunService.RenderStepped:Connect(function()
         FOVPoly.Visible = false
     end
 
-    -- beam
     local target = GetClosestTarget()
     if target and IsAlive(target) then
         local pos, on = Camera:WorldToViewportPoint(target.Character.Head.Position)
@@ -1160,39 +1149,41 @@ RunService.RenderStepped:Connect(function()
     Tracer.Visible = false
 end)
 
+--// UI ==============================
 
-MainTab:Toggle({
-    Title = "Aim bot",
-    Default = SilentAimEnabled,
-    Callback = function(state)
-        SilentAimEnabled = state
-        FOVPoly.Visible = state and ShowFOV
+CombatTab:Toggle({
+    Title = "Aim Bot",
+    Flag = "SilentAim",
+    Value = SilentAimEnabled,
+    Callback = function(Value)
+        SilentAimEnabled = Value
+        FOVPoly.Visible = Value and ShowFOV
     end
 })
 
-MainTab:Toggle({
+CombatTab:Toggle({
     Title = "Show FOV",
-    Default = ShowFOV,
-    Callback = function(state)
-        ShowFOV = state
-        FOVPoly.Visible = state and SilentAimEnabled
+    Flag = "ShowFOV",
+    Value = ShowFOV,
+    Callback = function(Value)
+        ShowFOV = Value
+        FOVPoly.Visible = Value and SilentAimEnabled
     end
 })
 
-MainTab:Slider({
+CombatTab:Slider({
     Title = "FOV Size",
+    Flag = "FOVSize",
+    Value = FOV,
+    Min = 20,
+    Max = 1000,
     Step = 1,
-    Value = {
-        Min = 20,
-        Max = 1000
-    },
-    Default = FOV,
-    Callback = function(v)
-        FOV = v
+    Callback = function(Value)
+        FOV = Value
     end
 })
 
--- Save Friends
+--// FRIENDS
 local function GetNames()
     local t = {}
     for _,p in pairs(Players:GetPlayers()) do
@@ -1203,11 +1194,12 @@ local function GetNames()
     return t
 end
 
-MainTab:Dropdown({
+CombatTab:Dropdown({
     Title = "Save Friends",
+    Flag = "SaveFriends",
     Values = GetNames(),
     Multi = true,
-    Default = {},
+    Value = {},
     Callback = function(sel)
         for _,p in pairs(Players:GetPlayers()) do
             p:SetAttribute("SilentAimIgnore", false)
