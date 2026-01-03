@@ -517,3 +517,495 @@ MainTab:Slider({
         walkSpeedMultiplier = tonumber(value)
     end
 })
+
+_G.AntiLock = false
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local LocalPlayer = Players.LocalPlayer
+local CharModule = require(ReplicatedStorage.Modules.Core.Char)
+
+
+local AntiAimAnimTrack = nil
+local ANIM_ID = "rbxassetid://104767795538635"
+
+local function playDanceAntiAim()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local humanoid = char:WaitForChild("Humanoid")
+
+    if AntiAimAnimTrack then
+        AntiAimAnimTrack:Stop()
+        AntiAimAnimTrack:Destroy()
+        AntiAimAnimTrack = nil
+    end
+
+    local anim = Instance.new("Animation")
+    anim.AnimationId = ANIM_ID
+
+    AntiAimAnimTrack = humanoid:LoadAnimation(anim)
+    AntiAimAnimTrack.Looped = true
+    AntiAimAnimTrack:Play()
+    AntiAimAnimTrack:AdjustSpeed(99999999999999999999999999999999999)
+end
+
+local function stopDanceAntiAim()
+    if AntiAimAnimTrack then
+        AntiAimAnimTrack:Stop()
+        AntiAimAnimTrack:Destroy()
+        AntiAimAnimTrack = nil
+    end
+end
+
+
+local function VelocityDesync()
+    local hrp = CharModule.get_hrp()
+    if not hrp then return end
+
+    local OldVec = hrp.Velocity
+    local Lin = hrp.AssemblyLinearVelocity
+    local Ang = hrp.AssemblyAngularVelocity
+
+    local RandomVec = Vector3.new(
+        math.random(-16000, 16000),
+        math.random(-16000, 16000),
+        math.random(-16000, 16000)
+    )
+
+    hrp.Velocity = RandomVec
+    hrp.AssemblyLinearVelocity = RandomVec
+    hrp.AssemblyAngularVelocity = RandomVec
+
+    RunService.RenderStepped:Wait()
+
+    hrp.Velocity = OldVec
+    hrp.AssemblyLinearVelocity = Lin
+    hrp.AssemblyAngularVelocity = Ang
+end
+
+local function SetPhysics()
+    local hrp = CharModule.get_hrp()
+    if hrp then
+        hrp.CustomPhysicalProperties = PhysicalProperties.new(0.001, 0.001, 0.001)
+    end
+end
+
+
+RunService.Heartbeat:Connect(function()
+    if _G.AntiLock then
+        VelocityDesync()
+        SetPhysics()
+    end
+end)
+
+
+MainTab:Toggle({
+    Title = "Anti Aim",
+    Flag = "antilock",
+    Type = "Checkbox",
+    Value = false,
+    Callback = function(Value)
+        _G.AntiLock = Value
+
+        if Value then
+            playDanceAntiAim()
+        else
+            stopDanceAntiAim()
+        end
+    end
+})
+
+local player = Players.LocalPlayer
+local AntiKillEnabled = false
+local isAntiKill = false
+local depth = 3
+local fakeChar
+
+local function getCharData()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hum = char:WaitForChild("Humanoid")
+    local root = char:WaitForChild("HumanoidRootPart")
+    return char, hum, root
+end
+
+local function forceDownReal(root, hum, char)
+    local targetY = root.Position.Y - depth
+    root.CFrame = CFrame.new(root.Position.X, targetY, root.Position.Z)
+    root.Velocity = Vector3.zero
+    root.AssemblyLinearVelocity = Vector3.zero
+    hum.PlatformStand = true
+    for _, part in pairs(char:GetChildren()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = false
+        end
+    end
+end
+
+local function createFakeCharacter(root)
+    local dummy = Instance.new("Model")
+    dummy.Name = player.Name .. "_Fake"
+    local hrp = Instance.new("Part")
+    hrp.Name = "HumanoidRootPart"
+    hrp.Size = Vector3.new(2,2,1)
+    hrp.Anchored = true
+    hrp.CanCollide = true
+    hrp.Position = root.Position
+    hrp.Parent = dummy
+    local humanoid = Instance.new("Humanoid")
+    humanoid.Parent = dummy
+    dummy.Parent = workspace
+    return dummy
+end
+
+local function startAntiKillLoop()
+    if isAntiKill then return end
+    isAntiKill = true
+
+    local char, hum, root = getCharData()
+    fakeChar = createFakeCharacter(root)
+    local fakeRoot = fakeChar:FindFirstChild("HumanoidRootPart")
+
+    task.spawn(function()
+        while AntiKillEnabled and hum.Health > 0 and isAntiKill and hum.Health <= 21 do
+            forceDownReal(root, hum, char)
+
+            local power = 3
+            local dx = math.random(-power, power)
+            local dz = math.random(-power, power)
+            local spin = CFrame.Angles(0, math.rad(50), 0)
+            root.CFrame = (root.CFrame * spin) * CFrame.new(dx, 0, dz)
+
+            if fakeRoot then
+                fakeRoot.CFrame = root.CFrame + Vector3.new(0, depth, 0)
+            end
+
+            RunService.Heartbeat:Wait()
+        end
+
+        if fakeChar then
+            fakeChar:Destroy()
+            fakeChar = nil
+        end
+        hum.PlatformStand = false
+        for _, part in pairs(char:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+        root.CFrame = root.CFrame + Vector3.new(0, depth + 2, 0)
+        isAntiKill = false
+    end)
+end
+
+local function connectAntiKill(char)
+    local hum = char:WaitForChild("Humanoid")
+    hum.HealthChanged:Connect(function(hp)
+        if AntiKillEnabled then
+            if hp <= 21 and not isAntiKill then
+                startAntiKillLoop()
+            elseif hp >= 31 and isAntiKill then
+                local char, hum, root = getCharData()
+                if fakeChar then
+                    fakeChar:Destroy()
+                    fakeChar = nil
+                end
+                hum.PlatformStand = false
+                for _, part in pairs(char:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
+                root.CFrame = root.CFrame + Vector3.new(0, depth + 2, 0)
+                isAntiKill = false
+            end
+        end
+    end)
+end
+
+if player.Character then
+    connectAntiKill(player.Character)
+end
+
+player.CharacterAdded:Connect(connectAntiKill)
+
+MainTab:Toggle({
+    Title = "Enable AntiKill",
+    Default = false,
+    Callback = function(state)
+        AntiKillEnabled = state
+
+        if AntiKillEnabled and player.Character then
+            local hum = player.Character:FindFirstChild("Humanoid")
+            if hum and hum.Health <= 21 and not isAntiKill then
+                startAntiKillLoop()
+            end
+        end
+    end
+})
+
+-- อันติแรคดอล
+local function AntiRagdollLoop()
+    while _G.AntiRagdoll do
+        task.wait(0.1)
+
+        pcall(function()
+            local isRagdolled = RagdollModule.is_ragdolling.get()
+            if isRagdolled then
+                RagdollModule.is_ragdolling.set(false)
+                
+                
+                pcall(function() Net.send("end_ragdoll_early") end)
+                pcall(function() Net.send("clear_ragdoll") end)
+                pcall(function() Net.get("end_ragdoll_early") end)
+                pcall(function() Net.get("clear_ragdoll") end)
+            end
+        end)
+    end
+end
+
+
+MainTab:Toggle({
+    Title = "Anti Ragdoll",
+    Desc = "No ragdoll",
+    Flag = "AntiRagdoll",
+    Type = "Checkbox",
+    Value = false,
+    Callback = function(Value)
+        _G.AntiRagdoll = Value
+
+        if Value then
+            task.spawn(AntiRagdollLoop)
+        end
+    end
+})
+
+RunService.RenderStepped:Connect(function(delta)
+    if speedActive and player.Character then
+        local char = player.Character
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if hum and root then
+            local moveDir = hum.MoveDirection
+            if moveDir.Magnitude > 0 then
+                root.CFrame = root.CFrame + moveDir.Unit * walkSpeedMultiplier * delta * 1
+            end
+        end
+    end
+end)
+
+
+local EnabledFlyJump = false
+
+MainTab:Toggle(
+    {
+        Title = "Fly Jump",
+        Flag = "Fly",
+        Icon = "check",
+        Type = "Checkbox",
+        Value = false,
+        Callback = function(Value)
+            EnabledFlyJump = Value
+        end
+    }
+)
+
+UserInputService.JumpRequest:Connect(
+    function()
+        if not EnabledFlyJump or not RootPart or not Humanoid then
+            return
+        end
+        holdingJump = true
+        task.spawn(
+            function()
+                while holdingJump and EnabledFlyJump do
+                    RunService.Heartbeat:Wait()
+                    if RootPart then
+                        RootPart.Velocity = Vector3.new(RootPart.Velocity.X, 30, RootPart.Velocity.Z)
+                    else
+                        break
+                    end
+                end
+            end
+        )
+    end
+)
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local DroppedItems = workspace:WaitForChild("DroppedItems")
+
+local Character
+local HRP
+
+local PICKUP_DISTANCE = 350
+local TOUCH_REPEAT = 25
+local pickupEnabled = false
+
+
+local function bindCharacter(char)
+    Character = char
+    HRP = char:WaitForChild("HumanoidRootPart", 5)
+end
+
+if LocalPlayer.Character then
+    bindCharacter(LocalPlayer.Character)
+end
+LocalPlayer.CharacterAdded:Connect(bindCharacter)
+
+
+local function firetouch(partA, partB)
+    if not firetouchinterest or not partA or not partB then return end
+    for i = 1, TOUCH_REPEAT do
+        firetouchinterest(partA, partB, 0)
+        firetouchinterest(partA, partB, 1)
+    end
+end
+
+
+RunService.RenderStepped:Connect(function()
+    if not pickupEnabled then return end
+    if not HRP or not HRP.Parent then return end
+
+    for _, item in ipairs(DroppedItems:GetChildren()) do
+        local zone = item:FindFirstChild("PickUpZone")
+        if zone and zone:IsA("BasePart") then
+            local dist = (HRP.Position - zone.Position).Magnitude
+            if dist <= PICKUP_DISTANCE then
+                firetouch(zone, HRP)
+            end
+        end
+    end
+end)
+
+
+MainTab:Toggle({
+    Title = "Pickup Item",
+    Default = false,
+    Callback = function(state)
+        pickupEnabled = state
+    end
+})
+
+local EnabledInfiniteStamina = false
+
+
+MainTab:Toggle(
+    {
+        Title = "Infinite Stamina",
+        Flag = "Inf",
+        Type = "Checkbox",
+        Value = false,
+        Callback = function(Value)
+            EnabledInfiniteStamina = Value
+        end
+    }
+)
+
+
+local OldUpdate = SprintBar.update
+
+
+SprintBar.update = function(...)
+    if EnabledInfiniteStamina then
+        
+        return 0.9
+    else
+        
+        return OldUpdate(...)
+    end
+end
+
+MainTab:Section(
+    {
+        Title = "Ett:"
+    }
+)
+
+local DesyncButton = MainTab:Button({
+    Title = "Invisible",
+    Locked = false,
+    Callback = function()
+	   Net.send("request_respawn")
+		task.wait(6.1)
+		Net.get("death_screen_request_respawn")
+        setfflag("NextGenReplicatorEnabledWrite4", "true")
+		        WindUI:Notify({
+            Title = "Invisible Success",
+            Duration = 3,
+        })
+    end,
+})
+
+MainTab:Section(
+    {
+        Title = "Snap:"
+    }
+)
+
+local EnabledSnapRunning = false
+local SnapThread = nil
+local YoffsetValue = 20
+local func = {}
+
+func["EnabledSnap"] = function()
+    local basePosition = RootPart.Position
+    while EnabledSnapRunning do
+        task.wait()
+        if not EnabledSnapRunning then break end
+        local currentY = RootPart.Position.Y
+        local targetY = basePosition.Y - YoffsetValue
+        local deltaY = targetY - currentY
+        RootPart.CFrame = RootPart.CFrame * CFrame.new(0, deltaY, 0)
+    end
+end
+
+
+local function SetSnapState(value)
+    if EnabledSnapRunning == value then return end
+    EnabledSnapRunning = value
+    if value then
+        if not SnapThread then
+            SnapThread = task.spawn(func["EnabledSnap"])
+        end
+    else
+        SnapThread = nil
+    end
+
+    if MainTab:Get("UndergroundToggle") then
+        MainTab:Get("UndergroundToggle"):SetValue(value)
+    end
+end
+
+
+MainTab:Toggle({
+    Title = "Snap",
+    Value = false,
+    Flag = "UndergroundToggle",
+    Callback = function(value)
+        SetSnapState(value)
+    end
+})
+
+
+MainTab:Keybind({
+    Title = "Snap Keybind",
+    Flag = "snap_keybind",
+    Value = "G",
+    Callback = function()
+        SetSnapState(not EnabledSnapRunning)
+    end
+})
+
+
+MainTab:Slider({
+    Title = "Snap High",
+    Flag = "snap_height",
+    Step = 1,
+    Value = { Min = 1, Max = 50, Default = YoffsetValue },
+    Callback = function(value)
+        YoffsetValue = value
+    end
+})
