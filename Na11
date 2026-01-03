@@ -153,14 +153,14 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
-local MainTab = Window:Tab({
-    Title = "Main",
-    Icon = "list"
-})
-
 local CombatTab = Window:Tab({
     Title = "Combat",
     Icon = "swords"
+})
+
+local MainTab = Window:Tab({
+    Title = "Main",
+    Icon = "list"
 })
 
 local EspTab = Window:Tab({
@@ -187,6 +187,81 @@ local ServerTab = Window:Tab({
     Title = "Server",
     Icon = "server"
 })
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+local SilentAimEnabled = true
+local ShowFOV = true
+local FOV = 250
+local BASE_PREDICTION = 12
+local ANTI_PREDICTION = 0.6
+
+local CombatTab = Window:Tab({
+    Title = "Combat",
+    Icon = "swords"
+})
+
+CombatTab:Section({
+    Title = "Silent Aim"
+})
+
+CombatTab:Toggle({
+    Title = "Aim Bot",
+    Flag = "SilentAim",
+    Value = SilentAimEnabled,
+    Callback = function(Value)
+        SilentAimEnabled = Value
+    end
+})
+
+CombatTab:Toggle({
+    Title = "Show FOV",
+    Flag = "ShowFOV",
+    Value = ShowFOV,
+    Callback = function(Value)
+        ShowFOV = Value
+    end
+})
+
+CombatTab:Slider({
+    Title = "FOV Size",
+    Flag = "FOVSize",
+    Min = 20,
+    Max = 1000,
+    Value = FOV,
+    Step = 1,
+    Callback = function(Value)
+        FOV = Value
+    end
+})
+
+CombatTab:Section({
+    Title = "Friends"
+})
+
+CombatTab:Dropdown({
+    Title = "Save Friends",
+    Flag = "SaveFriends",
+    Values = {},
+    Multi = true,
+    Value = {},
+    Callback = function(list)
+        for _,p in pairs(Players:GetPlayers()) do
+            p:SetAttribute("SilentAimIgnore", false)
+        end
+        for _,name in pairs(list) do
+            local p = Players:FindFirstChild(name)
+            if p then
+                p:SetAttribute("SilentAimIgnore", true)
+            end
+        end
+    end
+})
+
 
 MainTab:Section(
     {
@@ -772,12 +847,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
---// SETTINGS
-local SilentAimEnabled = true
-local ShowFOV = true
-local FOV = 250
-local BASE_PREDICTION = 12
-local ANTI_PREDICTION = 0.6
+
 
 --// DRAWING
 local FOVPoly = Drawing.new("Polygon")
@@ -909,66 +979,4 @@ RunService.RenderStepped:Connect(function()
     Tracer.Visible = false
 end)
 
---// UI ==============================
 
-CombatTab:Toggle({
-    Title = "Aim Bot",
-    Flag = "SilentAim",
-    Value = SilentAimEnabled,
-    Callback = function(Value)
-        SilentAimEnabled = Value
-        FOVPoly.Visible = Value and ShowFOV
-    end
-})
-
-CombatTab:Toggle({
-    Title = "Show FOV",
-    Flag = "ShowFOV",
-    Value = ShowFOV,
-    Callback = function(Value)
-        ShowFOV = Value
-        FOVPoly.Visible = Value and SilentAimEnabled
-    end
-})
-
-CombatTab:Slider({
-    Title = "FOV Size",
-    Flag = "FOVSize",
-    Value = FOV,
-    Min = 20,
-    Max = 1000,
-    Step = 1,
-    Callback = function(Value)
-        FOV = Value
-    end
-})
-
---// FRIENDS
-local function GetNames()
-    local t = {}
-    for _,p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer then
-            table.insert(t, p.Name)
-        end
-    end
-    return t
-end
-
-CombatTab:Dropdown({
-    Title = "Save Friends",
-    Flag = "SaveFriends",
-    Values = GetNames(),
-    Multi = true,
-    Value = {},
-    Callback = function(sel)
-        for _,p in pairs(Players:GetPlayers()) do
-            p:SetAttribute("SilentAimIgnore", false)
-        end
-        for _,name in pairs(sel) do
-            local p = Players:FindFirstChild(name)
-            if p then
-                p:SetAttribute("SilentAimIgnore", true)
-            end
-        end
-    end
-})
