@@ -1004,7 +1004,7 @@ MainTab:Slider({
     end
 })
 
-CombatTab:Section(
+MainTab:Section(
     {
         Title = "aim bot:"
     }
@@ -1161,7 +1161,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 
-CombatTab:Toggle({
+MainTab:Toggle({
     Title = "Aim bot",
     Default = SilentAimEnabled,
     Callback = function(state)
@@ -1170,7 +1170,7 @@ CombatTab:Toggle({
     end
 })
 
-CombatTab:Toggle({
+MainTab:Toggle({
     Title = "Show FOV",
     Default = ShowFOV,
     Callback = function(state)
@@ -1179,7 +1179,7 @@ CombatTab:Toggle({
     end
 })
 
-CombatTab:Slider({
+MainTab:Slider({
     Title = "FOV Size",
     Step = 1,
     Value = {
@@ -1203,7 +1203,7 @@ local function GetNames()
     return t
 end
 
-CombatTab:Dropdown({
+MainTab:Dropdown({
     Title = "Save Friends",
     Values = GetNames(),
     Multi = true,
