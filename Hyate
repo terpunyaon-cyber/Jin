@@ -1861,9 +1861,7 @@ LocalPlayer.Character.ChildAdded:Connect(function(child)
     end
 end)
 
--- =========================
--- UI Sliders & Toggle
--- =========================
+
 
 GunModsTab:Slider({
     Title = "Fire Rate",
@@ -1917,7 +1915,7 @@ GunModsTab:Toggle({
     end
 })
 
--- Bump Aura 
+
 local function BumpAuraLoop()
     while _G.BumpAura do
         task.wait(0.1)
@@ -1959,7 +1957,7 @@ CarTab:Toggle({
 
 local EnabledSkip = false
 
--- ปุ่ม Toggle
+
 MiscTab:Toggle({
     Title = "Skip Animation",
     Flag = "skip_anim",
@@ -2036,8 +2034,6 @@ local function Bootsfps()
 	end
 end
 
-
-
 MiscTab:Button({
 	Title = "Bootsfps",
 	Icon = "zap",
@@ -2050,7 +2046,7 @@ local Lighting = game:GetService("Lighting")
 local Terrain = workspace:FindFirstChildOfClass("Terrain")
 
 local function RTX_ON()
-	-- ล้างของเก่า
+	
 	for _, v in ipairs(Lighting:GetChildren()) do
 		if v:IsA("Atmosphere")
 		or v:IsA("BloomEffect")
@@ -2149,99 +2145,6 @@ MiscTab:Button({
 	end
 })
 
-local function GetJobID()
-    return game.JobId or "Unknown"
-end
-
-local ServerCodeLabel =
-    ServerTab:Code(
-    {
-        Title = "Current Server",
-        Code = " " .. GetJobID()
-    }
-)
-
-ServerTab:Divider()
-
-ServerTab:Section(
-    {
-        Title = "Server Utilities:"
-    }
-)
-
--- ที่มส่โค้ดเซิฟ
-local ServerCode = ""
-
-ServerTab:Input(
-    {
-        Title = "Enter Server Code",
-        Placeholder = "Paste server JobId here...",
-        Callback = function(Value)
-            ServerCode = Value
-        end
-    }
-)
-
--- ปุ่มใส่โค้ดเซิฟ
-ServerTab:Button(
-    {
-        Title = "Join Code",
-        Icon = "log-in",
-        Callback = function()
-            if ServerCode == "" then
-                warn("ใส่job")
-                return
-            end
-            local TeleportService = game:GetService("TeleportService")
-            TeleportService:TeleportToPlaceInstance(game.PlaceId, ServerCode, game.Players.LocalPlayer)
-        end
-    }
-)
-
-ServerTab:Button(
-    {
-        Title = "Rejoin",
-        Icon = "refresh-ccw",
-        Callback = function()
-            local TeleportService = game:GetService("TeleportService")
-            TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, game.Players.LocalPlayer)
-        end
-    }
-)
-
-ServerTab:Button(
-    {
-        Title = "Hop Server (Low Player)​",
-        Icon = "shuffle",
-        Callback = function()
-            local HttpService = game:GetService("HttpService")
-            local TeleportService = game:GetService("TeleportService")
-            local servers = {}
-            local req =
-                game:HttpGet(
-                string.format(
-                    "https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100",
-                    game.PlaceId
-                )
-            )
-            local data = HttpService:JSONDecode(req)
-            if data and data.data then
-                for _, v in pairs(data.data) do
-                    if v.playing < v.maxPlayers then
-                        table.insert(servers, v.id)
-                    end
-                end
-            end
-            if #servers > 0 then
-                TeleportService:TeleportToPlaceInstance(
-                    game.PlaceId,
-                    servers[math.random(1, #servers)],
-                    game.Players.LocalPlayer
-                )
-            end
-        end
-    }
-)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
