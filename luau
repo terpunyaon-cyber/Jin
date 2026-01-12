@@ -343,6 +343,7 @@ local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/rel
 
 local Window = WindUI:CreateWindow({
     Title = "Swift Hub x BlockSpin [NETA] v1.0​",
+	Icon = "rbxassetid://126601065035910",
     Author = "kill yenix ^^",
     Folder = "MySuperHub",
     Size = UDim2.fromOffset(700, 540),
@@ -372,7 +373,7 @@ ScreenGui.Name = "WindUI_Toggle"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = game:GetService("CoreGui")
 
-ToggleBtn.Size = UDim2.new(0, 65, 0, 65)
+ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
 ToggleBtn.Position = UDim2.new(0.5, -25, 0, 15) 
 ToggleBtn.BackgroundTransparency = 1
 ToggleBtn.Image = "rbxassetid://126601065035910"
