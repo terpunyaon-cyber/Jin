@@ -1914,3 +1914,393 @@ GunModsTab:Toggle({
         end
     end
 })
+local EnabledSkip = false
+MiscTab:Toggle({
+    Title = "Skip Animation",
+    Flag = "skip_anim",
+    Value = false,
+    Callback = function(Value)
+        EnabledSkip = Value
+
+      
+        if EnabledSkip then
+            task.spawn(function()
+                while EnabledSkip do
+                    
+                    for _, crate in pairs(CrateController.class.objects) do
+                        
+                        crate.states.open.set(true)       
+                        CrateController.skipping.set(true) 
+                    end
+                    task.wait(0.05) 
+                end
+            end)
+        end
+    end
+})
+
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Terrain = workspace:FindFirstChildOfClass("Terrain")
+
+local function Bootsfps()
+	
+	for _, v in ipairs(Lighting:GetChildren()) do
+		if v:IsA("Sky")
+		or v:IsA("Atmosphere")
+		or v:IsA("BloomEffect")
+		or v:IsA("SunRaysEffect")
+		or v:IsA("ColorCorrectionEffect")
+		or v:IsA("DepthOfFieldEffect") then
+			v:Destroy()
+		end
+	end
+
+	
+	Lighting.GlobalShadows = false
+	Lighting.Brightness = 0
+	Lighting.FogEnd = 9e9
+	Lighting.EnvironmentDiffuseScale = 0
+	Lighting.EnvironmentSpecularScale = 0
+
+	
+	if Terrain then
+		Terrain.WaterWaveSize = 0
+		Terrain.WaterWaveSpeed = 0
+		Terrain.WaterReflectance = 0
+		Terrain.WaterTransparency = 1
+	end
+
+	
+	for _, v in ipairs(workspace:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.Material = Enum.Material.Plastic
+			v.Reflectance = 0
+			v.CastShadow = false
+			v.Color = Color3.fromRGB(120,120,120)
+
+		elseif v:IsA("Decal") or v:IsA("Texture") then
+			v.Transparency = 1
+
+		elseif v:IsA("ParticleEmitter")
+		or v:IsA("Trail")
+		or v:IsA("Beam") then
+			v.Enabled = false
+		end
+	end
+end
+
+
+
+MiscTab:Button({
+	Title = "Bootsfps",
+	Icon = "zap",
+	Callback = function()
+		Bootsfps()
+	end
+})
+
+local Lighting = game:GetService("Lighting")
+local Terrain = workspace:FindFirstChildOfClass("Terrain")
+
+local function RTX_ON()
+	
+	for _, v in ipairs(Lighting:GetChildren()) do
+		if v:IsA("Atmosphere")
+		or v:IsA("BloomEffect")
+		or v:IsA("SunRaysEffect")
+		or v:IsA("ColorCorrectionEffect")
+		or v:IsA("DepthOfFieldEffect")
+		or v:IsA("Sky") then
+			v:Destroy()
+		end
+	end
+
+	
+	local Sky = Instance.new("Sky")
+	Sky.SkyboxBk = "rbxassetid://159454299"
+	Sky.SkyboxDn = "rbxassetid://159454296"
+	Sky.SkyboxFt = "rbxassetid://159454293"
+	Sky.SkyboxLf = "rbxassetid://159454286"
+	Sky.SkyboxRt = "rbxassetid://159454300"
+	Sky.SkyboxUp = "rbxassetid://159454288"
+	Sky.SunAngularSize = 21
+	Sky.Parent = Lighting
+
+	
+	Lighting.Technology = Enum.Technology.Future
+	Lighting.GlobalShadows = true
+	Lighting.ShadowSoftness = 1
+	Lighting.Brightness = 3
+	Lighting.ExposureCompensation = 0.25
+	Lighting.EnvironmentDiffuseScale = 1
+	Lighting.EnvironmentSpecularScale = 1
+	Lighting.ClockTime = 14
+
+	
+	local Atmosphere = Instance.new("Atmosphere")
+	Atmosphere.Density = 0.35
+	Atmosphere.Offset = 0.25
+	Atmosphere.Color = Color3.fromRGB(190, 210, 255)
+	Atmosphere.Decay = Color3.fromRGB(120, 150, 200)
+	Atmosphere.Glare = 0.35
+	Atmosphere.Haze = 1.2
+	Atmosphere.Parent = Lighting
+
+	
+	local Bloom = Instance.new("BloomEffect")
+	Bloom.Intensity = 1.2
+	Bloom.Size = 56
+	Bloom.Threshold = 0.85
+	Bloom.Parent = Lighting
+
+	
+	local SunRays = Instance.new("SunRaysEffect")
+	SunRays.Intensity = 0.25
+	SunRays.Spread = 0.85
+	SunRays.Parent = Lighting
+
+	
+	local CC = Instance.new("ColorCorrectionEffect")
+	CC.Brightness = 0.05
+	CC.Contrast = 0.25
+	CC.Saturation = 0.35
+	CC.TintColor = Color3.fromRGB(255, 245, 235)
+	CC.Parent = Lighting
+
+	
+	local DOF = Instance.new("DepthOfFieldEffect")
+	DOF.FarIntensity = 0.25
+	DOF.NearIntensity = 0.05
+	DOF.FocusDistance = 60
+	DOF.InFocusRadius = 40
+	DOF.Parent = Lighting
+
+	
+	if Terrain then
+		Terrain.WaterWaveSize = 1
+		Terrain.WaterWaveSpeed = 15
+		Terrain.WaterReflectance = 1
+		Terrain.WaterTransparency = 0.05
+	end
+
+	
+	for _, v in ipairs(workspace:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.CastShadow = true
+			if v.Material == Enum.Material.Plastic then
+				v.Material = Enum.Material.SmoothPlastic
+			end
+		end
+	end
+end
+
+MiscTab:Button({
+	Title = "RTX ON",
+	Icon = "sparkles",
+	Callback = function()
+		RTX_ON()
+	end
+})
+
+local function GetJobID()
+    return game.JobId or "Unknown"
+end
+
+local ServerCodeLabel =
+    ServerTab:Code(
+    {
+        Title = "Current Server",
+        Code = " " .. GetJobID()
+    }
+)
+
+ServerTab:Divider()
+
+ServerTab:Section(
+    {
+        Title = "Server Utilities:"
+    }
+)
+
+-- ที่มส่โค้ดเซิฟ
+local ServerCode = ""
+
+ServerTab:Input(
+    {
+        Title = "Enter Server Code",
+        Placeholder = "Paste server JobId here...",
+        Callback = function(Value)
+            ServerCode = Value
+        end
+    }
+)
+
+-- ปุ่มใส่โค้ดเซิฟ
+ServerTab:Button(
+    {
+        Title = "Join Code",
+        Icon = "log-in",
+        Callback = function()
+            if ServerCode == "" then
+                warn("ใส่codeดิน้อง")
+                return
+            end
+            local TeleportService = game:GetService("TeleportService")
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, ServerCode, game.Players.LocalPlayer)
+        end
+    }
+)
+
+ServerTab:Button(
+    {
+        Title = "Rejoin",
+        Icon = "refresh-ccw",
+        Callback = function()
+            local TeleportService = game:GetService("TeleportService")
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, game.Players.LocalPlayer)
+        end
+    }
+)
+
+ServerTab:Button(
+    {
+        Title = "Hop Server (Low Player)​",
+        Icon = "shuffle",
+        Callback = function()
+            local HttpService = game:GetService("HttpService")
+            local TeleportService = game:GetService("TeleportService")
+            local servers = {}
+            local req =
+                game:HttpGet(
+                string.format(
+                    "https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100",
+                    game.PlaceId
+                )
+            )
+            local data = HttpService:JSONDecode(req)
+            if data and data.data then
+                for _, v in pairs(data.data) do
+                    if v.playing < v.maxPlayers then
+                        table.insert(servers, v.id)
+                    end
+                end
+            end
+            if #servers > 0 then
+                TeleportService:TeleportToPlaceInstance(
+                    game.PlaceId,
+                    servers[math.random(1, #servers)],
+                    game.Players.LocalPlayer
+                )
+            end
+        end
+    }
+)
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local DroppedFolder = workspace:WaitForChild("DroppedItems")
+
+local ItemESPs = {}
+local ShowItemESP = true
+
+
+local BlueColor  = Color3.fromRGB(0,150,255)
+local GreenColor = Color3.fromRGB(0,255,0)
+
+local function getItemColor(item)
+    if item.Name:lower():find("money") then
+        return GreenColor
+    end
+    return BlueColor
+end
+
+
+local function createItemESP(item)
+    if ItemESPs[item] then return end
+
+    local color = getItemColor(item)
+    local highlights = {}
+    local label
+
+    
+    local function addHighlight(part)
+        local hl = Instance.new("Highlight")
+        hl.Adornee = part
+        hl.FillColor = color
+        hl.OutlineColor = color
+        hl.FillTransparency = 0.8
+        hl.OutlineTransparency = 0
+        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        hl.Enabled = true
+        hl.Parent = part
+        table.insert(highlights, hl)
+    end
+
+    if item:IsA("BasePart") then
+        addHighlight(item)
+    elseif item:IsA("Model") then
+        for _, v in ipairs(item:GetDescendants()) do
+            if v:IsA("BasePart") then
+                addHighlight(v)
+            end
+        end
+    end
+
+    
+    local basePart =
+        item:IsA("BasePart") and item
+        or item.PrimaryPart
+        or item:FindFirstChildWhichIsA("BasePart")
+
+    if basePart then
+        local bb = Instance.new("BillboardGui")
+        bb.Adornee = basePart
+        bb.Size = UDim2.new(0, 55, 0, 9) 
+        bb.StudsOffset = Vector3.new(0, basePart.Size.Y/2 + 0.6, 0)
+        bb.AlwaysOnTop = true
+        bb.Parent = basePart
+
+        label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1,0,1,0)
+        label.BackgroundTransparency = 1
+        label.Text = "[" .. item.Name .. "]"
+        label.Font = Enum.Font.GothamBold
+        label.TextScaled = false
+        label.TextSize = 8 -- 
+        label.TextColor3 = color
+        label.TextStrokeTransparency = 0.5
+        label.Visible = true
+        label.Parent = bb
+    end
+
+    ItemESPs[item] = {
+        highlights = highlights,
+        label = label
+    }
+end
+
+-
+local function removeItemESP(item)
+    local data = ItemESPs[item]
+    if not data then return end
+
+    for _, hl in ipairs(data.highlights) do
+        if hl then hl:Destroy() end
+    end
+
+    if data.label and data.label.Parent then
+        data.label.Parent:Destroy()
+    end
+
+    ItemESPs[item] = nil
+end
+
+-
+for _, item in ipairs(DroppedFolder:GetChildren()) do
+    createItemESP(item)
+end
+
+DroppedFolder.ChildAdded:Connect(createItemESP)
+DroppedFolder.ChildRemoved:Connect(removeItemESP)
