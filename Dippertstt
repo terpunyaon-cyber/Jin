@@ -216,7 +216,7 @@ end
 
 
 local Window = Hawk:Window({
-	ScriptName = "Rise",
+	ScriptName = "Dipper test new ui",
 	DestroyIfExists = true, --if false, gui wont disappear
 	Theme = "Dark" --Themes: Pink, White, Dark
 })
@@ -241,8 +241,8 @@ Window:Minimize({
 local Notifications = Hawk:AddNotifications()
 
 Notifications:Notification({
-	Title = "Welcome to Rise Scripts!",
-	Description = "Please Join: dc.gg/shwxteam",
+	Title = "Welcome to Dipper Scripts!",
+	Description = "Please Join: dc.gg/sxteam",
 	Selection = "Done",
 	Animated = true,
 	Cooldown = 4
@@ -262,7 +262,7 @@ local button = tab1:Button("Discord Server","Copy Link",function()
 	setclipboard("discord.gg/uPDMy5DpWN")
 
 	Notifications:Notification({
-		Title = "Rise",
+		Title = "Dipper",
 		Description = "Successfully Copied",
 		Selection = "Done",
 		Animated = true,
